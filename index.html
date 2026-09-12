@@ -40,9 +40,10 @@
   h1{ margin:0 0 2px; font-size:22px; font-weight:700; letter-spacing:.3px; }
   .sub{ color:var(--muted); font-size:12px; margin:0 0 12px; }
   .topbar{
+    position:sticky; position:-webkit-sticky; top:0; z-index:40;
     display:flex; flex-wrap:wrap; align-items:center; gap:12px 18px;
     background:var(--panel); border:1px solid var(--border); border-radius:12px;
-    padding:10px 14px;
+    padding:10px 14px; box-shadow:0 6px 18px rgba(0,0,0,.45);
   }
   .status{ font-size:13px; color:#9fb3c8; flex:1 1 220px; min-width:220px; }
   .status b{ color:var(--accent); }
@@ -71,6 +72,7 @@
     padding:7px 12px; border-radius:8px; cursor:pointer; font-size:12px; font-family:inherit;
   }
   .btn:hover{ background:#1a2438; border-color:#41507a; }
+  .btn.active{ background:#123525; border-color:#22c55e; color:#bbf7d0; box-shadow:0 0 10px rgba(34,197,94,.35); }
   .warn{
     margin-top:10px; background:#2a1a10; border:1px solid #7c4a12; color:#ffd9a8;
     padding:9px 12px; border-radius:10px; font-size:12px; line-height:1.7;
@@ -162,6 +164,12 @@
     flex:0 0 26px; width:26px; height:22px; padding:0; margin:0;
     border:1px solid var(--border); border-radius:6px; background:#0a0f19; cursor:pointer;
   }
+  .cell.has-audio .pad{ cursor:grab; }
+  .cell.has-audio .pad:active{ cursor:grabbing; }
+  .cell.drag-source .pad{ opacity:.45; filter:grayscale(.5); }
+  .cell.drag-over{ border-color:var(--accent); }
+  .cell.drag-over .pad{ outline:2px dashed var(--accent); outline-offset:-2px; background:linear-gradient(160deg,#14323c,#0e1a26); }
+  body.dragging{ overflow:hidden; touch-action:none; }
   footer{ text-align:center; color:#3f4a5c; font-size:11px; padding:4px 12px 20px; }
   .modal{
     position:fixed; inset:0; background:rgba(5,8,14,.7); backdrop-filter:blur(2px);
@@ -234,6 +242,7 @@
       <label>🎨 رنگ نمونه‌ها <input type="color" id="sampleColor" value="#c9a7ff" title="رنگ خانه‌های نمونه"></label>
       <label class="btn" id="addManyBtn" title="افزودن چند آهنگ همزمان به خانه‌های خالی">➕ افزودن آهنگ‌ها<input type="file" id="batchInput" accept="audio/*,.mp3,.m4a,.wav,.ogg,.flac,.aac,.m4b" multiple class="hidden-input"></label>
       <button class="btn hidden" id="installBtn" title="نصب اپ روی دستگاه">📲 نصب اپ</button>
+      <button class="btn" id="wakeBtn" title="جلوگیری از قفل شدن صفحه هنگام پخش (نیازمند iOS 16.4+)">🔒 بیدار نگه داشتن صفحه</button>
       <button class="btn" id="stopBtn" title="توقف همه">⏹ توقف</button>
       <button class="btn" id="backupBtn" title="بکاپ گرفتن از همه آهنگ‌ها و تنظیمات">💾 بکاپ</button>
       <label class="btn" id="restoreBtn" title="بازیابی بکاپ روی همین سیستم یا سیستم دیگر">📥 بازیابی<input type="file" id="backupInput" accept=".json,application/json" class="hidden-input"></label>
@@ -285,6 +294,9 @@
       <li><b>افزودن گروهی:</b> با دکمه <span class="kbd">➕ افزودن آهنگ‌ها</span> می‌تونی چند آهنگ رو یکجا انتخاب کنی؛ به ترتیب توی خانه‌های خالی چیده می‌شن.</li>
       <li><b>نصب اپ (PWA):</b> روی <b>اندروید و کامپیوتر</b>: دکمه <span class="kbd">📲 نصب اپ</span> ظاهر می‌شه (یا از منوی مرورگر → Install/Add to Home Screen). روی <b>آیفون/آیپد</b>: با Safari باز کن → دکمه <span class="kbd">Share</span> → <span class="kbd">Add to Home Screen</span> → تایید. بعد از نصب، اپ مثل یه برنامه واقعی از صفحه اصلی باز می‌شه و کاملاً آفلاین کار می‌کنه.</li>
       <li><b>در آیفون و آیپد (iOS):</b> برای افزودن موزیک، فایل‌های MP3/WAV/OGG باید در اپ <span class="kbd">Files (فایل‌ها)</span> باشن (از طریق AirDrop، دانلود از مرورگر، ایمیل/تلگرام یا درایو ابری مثل iCloud). بعد دکمه 🎵 یا ➕ رو بزن و از پنجره انتخاب فایل، موزیک رو انتخاب کن. <b>نکته iCloud:</b> اگر فایلی انتخاب شد ولی اضافه نشد، یعنی هنوز از iCloud دانلود نشده — اول در اپ Files روی فایل بزن تا دانلود شود، بعد دوباره انتخابش کن. <b>توجه:</b> آهنگ‌های Apple Music/Spotify به دلیل قفل DRM قابل افزودن نیستن — فقط فایل‌های صوتی آزاد.</li>
+      <li><b>ادامه پخش هنگام قفل صفحه (آیفون/آیپد):</b> دکمه <span class="kbd">🔒 بیدار نگه داشتن صفحه</span> رو فعال کن (iOS 16.4+). چون iOS به وب‌اپ اجازه پخش در پس‌زمینه نمی‌ده، این دکمه با جلوگیری از قفل شدن صفحه، پخش رو ادامه می‌ده. اگه جواب نداد: <b>Settings → Display &amp; Brightness → Auto-Lock → Never</b> رو بذار، <b>Low Power Mode</b> رو خاموش کن و دستگاه رو به برق وصل کن. برای جلوگیری از لمس‌های تصادفی در مراسم، <b>Guided Access</b> (Settings → Accessibility → Guided Access) رو فعال کن تا برنامه قفل بشه و دکمه پاور هم غیرفعال بشه.</li>
+      <li><b>جابه‌جایی خانه‌ها:</b> برای جابه‌جایی آهنگ بین خانه‌ها، با ماوس آهنگ رو بگیر و روی خانه دیگه بکش (روی موبایل: انگشتت رو کمی روی خانه نگه دار بعد بکش). محتوای دو خانه — آهنگ، نام، رنگ و حالت پخش — با هم عوض می‌شن.</li>
+      <li><b>نوار ثابت:</b> هنگام اسکرول صفحه به پایین، نوار بالایی (کنترل‌ها، زمان و Waveform) بالای صفحه ثابت می‌مونه.</li>
       <li><b>فید:</b> مدت فید رو از نوار بالا بین ۱ تا ۱۵ ثانیه تنظیم کن.</li>
       <li>آهنگ‌ها و اسم‌ها به‌صورت خودکار در مرورگر ذخیره می‌شن و بعد از بستن برنامه هم باقی می‌مونن.</li>
     </ul>
@@ -436,6 +448,8 @@ function saveAudio(i, blob){
 function deleteAudio(i){
   if(i >= MAIN_COUNT && sampleDecks[i]){ try{ sampleDecks[i].audio.pause(); }catch(e){} }
   audioFiles[i] = null;
+  meta[i].name = '';
+  meta[i].file = '';
   delete waveCache[i];
   if(i === activeCell){ wavePeaks = null; waveDuration = 0; drawWave(0); }
   if(db){
@@ -444,6 +458,9 @@ function deleteAudio(i){
       tx.objectStore('audio').delete(i);
     }catch(e){}
   }
+  const inp = document.querySelector('.name[data-i="'+i+'"]');
+  if(inp) inp.value = '';
+  saveMeta();
   recomputeDuck();
   refreshCell(i);
 }
@@ -808,6 +825,124 @@ function waveLoop(){
   checkAutoCrossfade();
 }
 
+/* ---------- جابجایی خانه‌ها با درگ (ماوس + لمس) ---------- */
+let dragState = null;
+let suppressClick = false;
+
+function onStagePointerDown(e){
+  if(e.pointerType === 'mouse' && e.button !== 0) return;
+  if(dragState) return;
+  const pad = e.target && e.target.closest ? e.target.closest('.pad') : null;
+  if(!pad) return;
+  const i = +pad.dataset.i;
+  if(!audioFiles[i]) return;
+  dragState = {
+    i: i, pad: pad,
+    startX: e.clientX, startY: e.clientY,
+    startT: Date.now(), active: false,
+    isTouch: (e.pointerType === 'touch'), timer: null
+  };
+  if(dragState.isTouch){
+    dragState.timer = setTimeout(function(){
+      if(dragState && !dragState.active) activateDrag(e.clientX, e.clientY);
+    }, 350);
+  }
+}
+function activateDrag(x, y){
+  if(!dragState) return;
+  dragState.active = true;
+  if(dragState.timer){ clearTimeout(dragState.timer); dragState.timer = null; }
+  const cell = dragState.pad.closest('.cell');
+  if(cell) cell.classList.add('drag-source');
+  document.body.classList.add('dragging');
+  updateDragVisual(x, y);
+}
+function clearDragOver(){
+  const prev = document.querySelectorAll('.cell.drag-over');
+  for(let k=0; k<prev.length; k++) prev[k].classList.remove('drag-over');
+}
+function updateDragVisual(x, y){
+  clearDragOver();
+  if(typeof document.elementFromPoint !== 'function') return;
+  const el = document.elementFromPoint(x, y);
+  if(el && el.closest){
+    const pad = el.closest('.pad');
+    if(pad){
+      const j = +pad.dataset.i;
+      if(j !== dragState.i){
+        const cell = pad.closest('.cell');
+        if(cell) cell.classList.add('drag-over');
+      }
+    }
+  }
+}
+function onStagePointerMove(e){
+  if(!dragState) return;
+  if(!dragState.active){
+    if(!dragState.isTouch && Math.hypot(e.clientX-dragState.startX, e.clientY-dragState.startY) > 6){
+      activateDrag(e.clientX, e.clientY);
+    }
+    if(!dragState.active) return;
+  }
+  e.preventDefault();
+  updateDragVisual(e.clientX, e.clientY);
+}
+function onStagePointerUp(e){
+  if(!dragState) return;
+  const wasActive = dragState.active;
+  if(wasActive){
+    let target = -1;
+    if(typeof document.elementFromPoint === 'function'){
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      if(el && el.closest){
+        const pad = el.closest('.pad');
+        if(pad) target = +pad.dataset.i;
+      }
+    }
+    if(target >= 0 && target !== dragState.i){
+      moveCellAudio(dragState.i, target);
+    }
+    suppressClick = true;
+    setTimeout(function(){ suppressClick = false; }, 0);
+  }
+  cleanupDrag();
+}
+function onStagePointerCancel(){ cleanupDrag(); }
+function cleanupDrag(){
+  if(dragState){
+    if(dragState.timer){ clearTimeout(dragState.timer); }
+    const cell = dragState.pad.closest('.cell');
+    if(cell) cell.classList.remove('drag-source');
+  }
+  clearDragOver();
+  document.body.classList.remove('dragging');
+  dragState = null;
+}
+function persistAudioCell(idx){
+  if(!db) return;
+  try{
+    const tx = db.transaction('audio','readwrite');
+    if(audioFiles[idx]) tx.objectStore('audio').put({id:idx, blob:audioFiles[idx]});
+    else tx.objectStore('audio').delete(idx);
+  }catch(e){}
+}
+function moveCellAudio(i, j){
+  if(i === j) return;
+  const b = audioFiles[i]; audioFiles[i] = audioFiles[j]; audioFiles[j] = b;
+  const m = meta[i]; meta[i] = meta[j]; meta[j] = m;
+  delete waveCache[i]; delete waveCache[j];
+  persistAudioCell(i); persistAudioCell(j);
+  if(activeCell === i) activeCell = j;
+  else if(activeCell === j) activeCell = i;
+  const inpI = document.querySelector('.name[data-i="'+i+'"]');
+  const inpJ = document.querySelector('.name[data-i="'+j+'"]');
+  if(inpI) inpI.value = meta[i].name;
+  if(inpJ) inpJ.value = meta[j].name;
+  saveMeta();
+  refreshAllCells();
+  if(activeCell >= 0) loadWave(activeCell);
+}
+
 /* ---------- UI ---------- */
 function buildGrid(){
   const grid = document.getElementById('grid');
@@ -854,6 +989,7 @@ function buildSampler(){
   }
 }
 function onGridClick(e){
+  if(suppressClick){ suppressClick = false; return; }
   const pad = e.target.closest('.pad');
   const btn = e.target.closest('.ctl');
   const i = pad ? +pad.dataset.i : (btn ? +btn.dataset.i : -1);
@@ -1080,8 +1216,9 @@ function assignFile(i, f){
       return false;
     }
     meta[i].file = f.name;
-    if(!meta[i].name) meta[i].name = f.name.replace(/\.[^.]+$/,'');
+    meta[i].name = f.name.replace(/\.[^.]+$/,'');
     saveAudio(i, f);
+    saveMeta();
     const inp = document.querySelector('.name[data-i="'+i+'"]');
     if(inp) inp.value = meta[i].name;
     refreshCell(i);
@@ -1181,6 +1318,10 @@ function wireEvents(){
   document.getElementById('stage').addEventListener('click', onGridClick);
   document.getElementById('stage').addEventListener('input', onGridInput);
   document.getElementById('stage').addEventListener('change', onGridChange);
+  document.getElementById('stage').addEventListener('pointerdown', onStagePointerDown);
+  window.addEventListener('pointermove', onStagePointerMove);
+  window.addEventListener('pointerup', onStagePointerUp);
+  window.addEventListener('pointercancel', onStagePointerCancel);
   window.addEventListener('resize', function(){ drawWave(waveCurrentTime()); });
 }
 
@@ -1215,6 +1356,55 @@ if('serviceWorker' in navigator){
   });
 }
 
+/* ---------- جلوگیری از قفل شدن صفحه (Screen Wake Lock) ---------- */
+let wakeLock = null;
+let wakeLockEnabled = false;
+const wakeBtn = document.getElementById('wakeBtn');
+function wakeSupported(){
+  return typeof navigator !== 'undefined' && !!(navigator.wakeLock && navigator.wakeLock.request);
+}
+async function requestWakeLock(){
+  if(!wakeSupported()){
+    wakeBtn.classList.remove('active');
+    statusEl.textContent = '⚠️ این مرورگر از جلوگیری از قفل صفحه پشتیبانی نمی‌کند (iOS 16.4 یا جدیدتر لازم است)';
+    return;
+  }
+  try{
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeBtn.classList.add('active');
+    statusEl.textContent = '🔒 صفحه بیدار نگه داشته می‌شود — پخش با قفل شدن صفحه قطع نمی‌شود';
+    wakeLock.addEventListener('release', function(){
+      wakeLock = null;
+      wakeBtn.classList.remove('active');
+    });
+  }catch(err){
+    wakeBtn.classList.remove('active');
+    statusEl.textContent = '⚠️ فعال‌سازی ناموفق بود: ' + (err && err.message ? err.message : err);
+  }
+}
+function toggleWakeLock(){
+  if(wakeLock){
+    wakeLockEnabled = false;
+    wakeLock.release().catch(function(){});
+    wakeLock = null;
+    wakeBtn.classList.remove('active');
+    statusEl.textContent = 'آماده — روی یک خونه کلیک کن';
+  }else{
+    wakeLockEnabled = true;
+    requestWakeLock();
+  }
+}
+function setupWakeLock(){
+  if(wakeBtn) wakeBtn.addEventListener('click', toggleWakeLock);
+  if(document && typeof document.addEventListener === 'function'){
+    document.addEventListener('visibilitychange', function(){
+      if(document.visibilityState === 'visible' && wakeLockEnabled){
+        requestWakeLock();
+      }
+    });
+  }
+}
+
 /* ---------- init ---------- */
 async function init(){
   meta = new Array(TOTAL).fill(null).map(function(){ return {name:'', mode:'next', file:'', vol:100, color:''}; });
@@ -1225,6 +1415,7 @@ async function init(){
   applySettingsToUI();
   refreshAllCells();
   wireEvents();
+  setupWakeLock();
   drawWave(0);
   requestAnimationFrame(waveLoop);
   db = await openDB();

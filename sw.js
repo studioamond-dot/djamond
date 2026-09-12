@@ -1,5 +1,5 @@
 /* Service Worker — سیستم پخش موزیک تشریفات آموند */
-const CACHE_NAME = 'amound-dj-v3';
+const CACHE_NAME = 'amound-dj-v6';
 const ASSETS = [
   './',
   './index.html',
