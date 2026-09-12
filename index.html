@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>سیستم پخش موزیک تشریفات آموند</title>
+<meta name="theme-color" content="#0a0d14">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="آموند">
+<meta name="application-name" content="آموند">
+<meta name="description" content="سیستم پخش موزیک تشریفات آموند — پد دیجی آفلاین">
+<style>
+  :root{
+    --bg:#0a0d14;
+    --panel:#0e1320;
+    --cell:#0d1119;
+    --border:#1c2434;
+    --border-hover:#2f3a54;
+    --text:#e5e7eb;
+    --muted:#5b6675;
+    --accent:#22d3ee;
+    --accent2:#c9a7ff;
+    --accent-warn:#f59e0b;
+    --danger:#f43f5e;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:radial-gradient(1200px 700px at 50% -10%, #101827 0%, var(--bg) 55%);
+    color:var(--text);
+    font-family:"Segoe UI", Tahoma, "Vazirmatn", Arial, sans-serif;
+    min-height:100vh;
+  }
+  header{ padding:18px 18px 8px; }
+  h1{ margin:0 0 2px; font-size:22px; font-weight:700; letter-spacing:.3px; }
+  .sub{ color:var(--muted); font-size:12px; margin:0 0 12px; }
+  .topbar{
+    display:flex; flex-wrap:wrap; align-items:center; gap:12px 18px;
+    background:var(--panel); border:1px solid var(--border); border-radius:12px;
+    padding:10px 14px;
+  }
+  .status{ font-size:13px; color:#9fb3c8; flex:1 1 220px; min-width:220px; }
+  .status b{ color:var(--accent); }
+  .controls{ display:flex; flex-wrap:wrap; align-items:center; gap:14px; }
+  .controls label{ display:flex; align-items:center; gap:8px; font-size:12px; color:#b6c2d4; }
+  .controls input[type=range]{ width:110px; accent-color:var(--accent); }
+  .controls input[type=color]{
+    width:34px; height:24px; padding:0; border:1px solid var(--border-hover);
+    border-radius:6px; background:#141c2b; cursor:pointer;
+  }
+  .seekrow{
+    flex-basis:100%; border-top:1px dashed var(--border); padding-top:10px;
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .seek-line{ display:flex; align-items:center; gap:10px; }
+  .seek-line input[type=range]{ flex:1; accent-color:var(--accent); }
+  .seek-time{ font-size:11px; color:#9fb3c8; font-variant-numeric:tabular-nums; min-width:42px; text-align:center; }
+  .waverow{ position:relative; height:46px; }
+  .waverow canvas{
+    width:100%; height:100%; display:block; border-radius:8px; cursor:pointer;
+    background:rgba(20,28,43,.6);
+  }
+  .btn{
+    display:inline-block;
+    background:#141c2b; color:#d7e0ee; border:1px solid var(--border-hover);
+    padding:7px 12px; border-radius:8px; cursor:pointer; font-size:12px; font-family:inherit;
+  }
+  .btn:hover{ background:#1a2438; border-color:#41507a; }
+  .warn{
+    margin-top:10px; background:#2a1a10; border:1px solid #7c4a12; color:#ffd9a8;
+    padding:9px 12px; border-radius:10px; font-size:12px; line-height:1.7;
+  }
+  .hidden{ display:none !important; }
+  main{ padding:14px 18px 24px; }
+  .stage{ display:flex; gap:12px; align-items:flex-start; }
+  .sampler{ flex:0 0 104px; display:flex; flex-direction:column; gap:8px; }
+  .sampler-title{
+    font-size:11px; color:var(--muted); text-align:center; line-height:1.6;
+    border:1px dashed var(--border); border-radius:9px; padding:7px 4px; background:var(--panel);
+  }
+  .sampler-title b{ color:var(--accent2); display:block; }
+  .sampler .cell{ background:#101220; border-color:#2a2540; }
+  .sampler .pad{ height:96px; }
+  .gridwrap{ flex:1 1 auto; overflow-x:auto; min-width:0; }
+  .grid{
+    display:grid; grid-template-columns:repeat(8, minmax(0,1fr));
+    gap:8px; min-width:860px; max-width:1180px; margin:0 auto;
+  }
+  .cell{
+    display:flex; flex-direction:column; gap:4px;
+    background:var(--cell); border:1px solid var(--border);
+    border-radius:12px; padding:5px;
+  }
+  .cell.has-audio{ border-color:#24304a; }
+  .pad{
+    width:100%; height:82px; border-radius:9px; cursor:pointer;
+    background:linear-gradient(160deg,#161d2b,#10141d);
+    border:1px solid #232b3d; color:#cbd5e1;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
+    font-family:inherit; padding:6px;
+  }
+  .pad:hover{ filter:brightness(1.25); border-color:var(--pc-accent, var(--border-hover)); }
+  .pad:active{ transform:scale(.98); }
+  .pad, .ctl, .btn{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; -webkit-user-select:none; user-select:none; }
+  .pad.has-color{ background:linear-gradient(160deg, var(--pc), #10141d); border-color:var(--pc-border); }
+  .pad-name{
+    font-size:12px; max-width:94%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .pad-name.muted{ color:var(--muted); }
+  .pad-badge{ font-size:10px; color:#3d4654; }
+  .pad-badge.on{ color:var(--pc-accent, var(--accent)); text-shadow:0 0 6px var(--pc-accent, var(--accent)); }
+  .sampler .pad-badge.on{ color:var(--pc-accent, var(--accent2)); text-shadow:0 0 6px var(--pc-accent, var(--accent2)); }
+  .cell.active .pad{
+    border-color:var(--pc-accent, var(--accent));
+    animation:pulse 1.15s ease-in-out infinite;
+  }
+  .cell.active.paused .pad{
+    animation:none; border-color:var(--accent-warn);
+    box-shadow:0 0 12px rgba(245,158,11,.45);
+  }
+  .cell.active.paused .pad-badge.on{ color:var(--accent-warn); text-shadow:0 0 6px var(--accent-warn); }
+  .sampler .cell.active .pad{
+    border-color:var(--pc-accent, var(--accent2));
+    animation:pulseViolet 1.15s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{ box-shadow:0 0 0 2px var(--pc-accent, var(--accent)), 0 0 16px var(--pc-accent, var(--accent)); }
+    50%    { box-shadow:0 0 0 2px var(--pc-accent, var(--accent)), 0 0 30px var(--pc-accent, var(--accent)); }
+  }
+  @keyframes pulseViolet{
+    0%,100%{ box-shadow:0 0 0 2px var(--pc-accent, var(--accent2)), 0 0 16px var(--pc-accent, var(--accent2)); }
+    50%    { box-shadow:0 0 0 2px var(--pc-accent, var(--accent2)), 0 0 30px var(--pc-accent, var(--accent2)); }
+  }
+  .cell.flash .pad{
+    background:#3a1220; border-color:var(--danger); box-shadow:0 0 18px rgba(244,63,94,.55);
+  }
+  .name{
+    width:100%; background:#0a0f19; border:1px solid var(--border); color:var(--text);
+    border-radius:7px; font-size:11px; padding:5px 6px; text-align:center; font-family:inherit;
+  }
+  .name:focus{ outline:none; border-color:#3b4c7a; }
+  .vol{
+    width:100%; height:14px; accent-color:var(--accent2); cursor:pointer;
+  }
+  .vol:disabled{ opacity:.35; }
+  .cell-controls{ display:flex; gap:4px; align-items:stretch; }
+  .ctl{
+    flex:1; display:flex; align-items:center; justify-content:center;
+    background:#0a0f19; border:1px solid var(--border); color:#8fa0b8;
+    border-radius:7px; cursor:pointer; font-size:12px; padding:4px 0; font-family:inherit;
+  }
+  .hidden-input, .fileinput{ display:none; }
+  .ctl:hover{ color:var(--text); border-color:var(--border-hover); }
+  .ctl.next{ color:var(--accent-warn); border-color:#4a3a12; }
+  .ctl.del:hover{ color:#ffb4c2; border-color:#5a2330; }
+  .colorpick{
+    flex:0 0 26px; width:26px; height:22px; padding:0; margin:0;
+    border:1px solid var(--border); border-radius:6px; background:#0a0f19; cursor:pointer;
+  }
+  footer{ text-align:center; color:#3f4a5c; font-size:11px; padding:4px 12px 20px; }
+  .modal{
+    position:fixed; inset:0; background:rgba(5,8,14,.7); backdrop-filter:blur(2px);
+    display:flex; align-items:center; justify-content:center; z-index:50; padding:16px;
+  }
+  .modal-card{
+    background:var(--panel); border:1px solid var(--border-hover); border-radius:14px;
+    padding:20px 22px; max-width:600px; width:100%; position:relative; line-height:2; font-size:13px;
+  }
+  .modal-card h2{ margin:0 0 8px; font-size:17px; }
+  .modal-card ul{ margin:0; padding-right:20px; color:#c6d1e0; }
+  .modal-card li{ margin:4px 0; }
+  .modal-close{
+    position:absolute; top:10px; left:10px; background:none; border:none; color:#8fa0b8;
+    font-size:16px; cursor:pointer;
+  }
+  .modal-close:hover{ color:#fff; }
+  .kbd{ background:#141c2b; border:1px solid var(--border-hover); border-radius:5px; padding:0 5px; font-size:11px; }
+  /* ---------- بهینه‌سازی موبایل / آیفون و آیپد ---------- */
+  header{ padding-top:calc(18px + env(safe-area-inset-top, 0px)); padding-left:calc(18px + env(safe-area-inset-left, 0px)); padding-right:calc(18px + env(safe-area-inset-right, 0px)); }
+  main{ padding-left:calc(14px + env(safe-area-inset-left, 0px)); padding-right:calc(14px + env(safe-area-inset-right, 0px)); }
+  footer{ padding-bottom:calc(14px + env(safe-area-inset-bottom, 0px)); }
+  @media (max-width: 760px){
+    h1{ font-size:17px; }
+    .sub{ font-size:10px; }
+    .topbar{ gap:7px 10px; padding:8px 10px; }
+    .status{ font-size:11px; min-width:150px; }
+    .controls{ gap:7px; }
+    .controls label{ font-size:10px; gap:5px; }
+    .controls input[type=range]{ width:70px; }
+    .controls input[type=color]{ width:26px; height:20px; }
+    .btn{ padding:6px 9px; font-size:10px; border-radius:7px; }
+    .seekrow{ padding-top:7px; gap:5px; }
+    .seek-time{ font-size:10px; min-width:32px; }
+    .waverow{ height:34px; }
+    .stage{ gap:5px; }
+    .sampler{ flex:0 0 48px; gap:5px; }
+    .sampler .pad{ height:48px; border-radius:7px; }
+    .sampler-title{ font-size:8px; padding:4px 2px; line-height:1.4; }
+    .grid{ min-width:0; grid-template-columns:repeat(8, minmax(34px, 1fr)); gap:3px; }
+    .cell{ padding:3px; border-radius:8px; gap:3px; }
+    .pad{ height:46px; border-radius:7px; padding:4px; gap:3px; }
+    .pad-name{ font-size:9px; }
+    .pad-badge{ font-size:8px; }
+    .name{ font-size:9px; padding:3px 4px; border-radius:5px; }
+    .vol{ height:11px; }
+    .cell-controls{ gap:2px; }
+    .ctl{ font-size:9px; padding:3px 0; border-radius:5px; }
+    .colorpick{ flex-basis:19px; width:19px; height:16px; }
+  }
+  @media (max-width: 400px){
+    .pad{ height:40px; }
+    .pad-name{ font-size:8px; }
+    .sampler .pad{ height:42px; }
+    .grid{ gap:2px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎛️ سیستم پخش موزیک تشریفات آموند</h1>
+  <p class="sub">۸×۸ خونه اصلی + ۷ خانه نمونه — کلیک = پخش با فید، کلیک مجدد = پاز/ادامه با فید ۱ ثانیه</p>
+  <div class="topbar">
+    <div class="status" id="status">آماده — روی یک خونه کلیک کن</div>
+    <div class="controls">
+      <label>🔊 صدا <input type="range" id="vol" min="0" max="100" value="80"></label>
+      <label>⏳ فید <span id="fadeVal">۵</span> ثانیه <input type="range" id="fade" min="1" max="15" value="5"></label>
+      <label>🎨 رنگ اصلی <input type="color" id="mainColor" value="#22d3ee" title="رنگ خانه‌های اصلی"></label>
+      <label>🎨 رنگ نمونه‌ها <input type="color" id="sampleColor" value="#c9a7ff" title="رنگ خانه‌های نمونه"></label>
+      <label class="btn" id="addManyBtn" title="افزودن چند آهنگ همزمان به خانه‌های خالی">➕ افزودن آهنگ‌ها<input type="file" id="batchInput" accept="audio/*,.mp3,.m4a,.wav,.ogg,.flac,.aac,.m4b" multiple class="hidden-input"></label>
+      <button class="btn hidden" id="installBtn" title="نصب اپ روی دستگاه">📲 نصب اپ</button>
+      <button class="btn" id="stopBtn" title="توقف همه">⏹ توقف</button>
+      <button class="btn" id="backupBtn" title="بکاپ گرفتن از همه آهنگ‌ها و تنظیمات">💾 بکاپ</button>
+      <label class="btn" id="restoreBtn" title="بازیابی بکاپ روی همین سیستم یا سیستم دیگر">📥 بازیابی<input type="file" id="backupInput" accept=".json,application/json" class="hidden-input"></label>
+      <button class="btn" id="helpBtn">؟ راهنما</button>
+    </div>
+    <div class="seekrow" dir="ltr">
+      <div class="seek-line">
+        <span class="seek-time" id="curTime">0:00</span>
+        <input type="range" id="seek" min="0" max="1" step="0.1" value="0" disabled title="جابه‌جایی در زمان آهنگ در حال پخش">
+        <span class="seek-time" id="durTime">0:00</span>
+      </div>
+      <div class="waverow"><canvas id="wave"></canvas></div>
+    </div>
+  </div>
+  <div class="warn hidden" id="warn">
+    ⚠️ ذخیره‌سازی دائمی در این محیط در دسترس نیست؛ آهنگ‌ها فقط تا بستن صفحه می‌مونن.
+    برای ذخیره دائمی، این فایل رو دانلود کن و مستقیم توی مرورگر خودت (Firefox / Chrome) باز کن.
+  </div>
+</header>
+
+<main>
+  <div class="stage" id="stage">
+    <div class="sampler" id="sampler"></div>
+    <div class="gridwrap">
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+</main>
+
+<footer>همه‌چیز کاملاً آفلاین و به‌صورت محلی در مرورگر شما ذخیره می‌شود.<span id="storageNote"></span></footer>
+
+<div class="modal hidden" id="helpModal">
+  <div class="modal-card">
+    <button class="modal-close" id="helpClose">✕</button>
+    <h2>📖 راهنما</h2>
+    <ul>
+      <li><b>پخش / پاز:</b> روی بدنه هر خونه کلیک کن تا آهنگش پخش بشه. <b>کلیک مجدد روی همون خونه = پاز با فید ۱ ثانیه</b>، کلیک بعدی = ادامه از همون‌جا (باز هم با فید ۱ ثانیه). تعویض آهنگ با <b>فید تدریجی</b> (پیش‌فرض ۵ ثانیه) انجام می‌شه.</li>
+      <li><b>حالت پیش‌فرض پخش:</b> بعد از تموم شدن هر آهنگ، <b>خودکار به خونه بعدی</b> می‌ره. با دکمه <span class="kbd">🔁/⏭️</span> هر خونه می‌تونی بین «لوپ» و «رفتن به بعدی» جابه‌جا بشی.</li>
+      <li><b>نوار پیمایش و Waveform:</b> نوار بالای صفحه (چپ به راست) زمان آهنگ رو نشون می‌ده؛ می‌تونی دستگیره رو بکشی یا روی شکل موج کلیک کنی تا زمان رو جلو/عقب ببری. Waveform برای فایل‌های MP3 هم کار می‌کنه.</li>
+      <li><b>خانه‌های نمونه (ستون کناری):</b> ۷ خانه عمودی که آهنگشون <b>همزمان روی آهنگ اصلی</b> پخش می‌شه و <b>تکرار نداره</b>. کلیک مجدد = <b>توقف</b>. هر خانه یه <b>ولوم</b> داره.</li>
+      <li><b>کاهش خودکار صدای اصلی:</b> وقتی نمونهای پخش بشه، صدای موزیک اصلی طی ۱ ثانیه <b>۵۰٪ کم می‌شه</b> و بعد از اتمام نمونه، به حالت قبل برمی‌گرده.</li>
+      <li><b>رنگ هر خونه:</b> مربع رنگی پایین هر خونه — با کلیک روش می‌تونی رنگ همون خونه رو عوض کنی (هاله پخش هم همون رنگ می‌شه).</li>
+      <li><b>بکاپ:</b> دکمه <span class="kbd">💾 بکاپ</span> یک فایل JSON شامل <b>همه آهنگ‌ها + نام‌ها + رنگ‌ها + تنظیمات</b> می‌سازه. برای انتقال به سیستم دیگه: فایل HTML برنامه رو کپی کن و روی سیستم جدید باز کن، بعد با دکمه <span class="kbd">📥 بازیابی</span> فایل بکاپ رو انتخاب کن.</li>
+      <li><b>انتخاب آهنگ:</b> دکمه <span class="kbd">🎵</span> زیر هر خونه → انتخاب فایل صوتی (mp3, wav, ogg و…).</li>
+      <li><b>اسم آهنگ:</b> توی کادر متنی هر خونه اسم رو دستی تایپ کن.</li>
+      <li><b>تغییر آهنگ:</b> دوباره دکمه 🎵 رو بزن و فایل جدید انتخاب کن.</li>
+      <li><b>حذف آهنگ:</b> دکمه <span class="kbd">🗑</span>.</li>
+      <li><b>رنگ کلی:</b> از نوار بالا با دو رنگ‌سنج می‌تونی رنگ پیش‌فرض خانه‌های اصلی و نمونه‌ها رو تغییر بدی.</li>
+      <li><b>افزودن گروهی:</b> با دکمه <span class="kbd">➕ افزودن آهنگ‌ها</span> می‌تونی چند آهنگ رو یکجا انتخاب کنی؛ به ترتیب توی خانه‌های خالی چیده می‌شن.</li>
+      <li><b>نصب اپ (PWA):</b> روی <b>اندروید و کامپیوتر</b>: دکمه <span class="kbd">📲 نصب اپ</span> ظاهر می‌شه (یا از منوی مرورگر → Install/Add to Home Screen). روی <b>آیفون/آیپد</b>: با Safari باز کن → دکمه <span class="kbd">Share</span> → <span class="kbd">Add to Home Screen</span> → تایید. بعد از نصب، اپ مثل یه برنامه واقعی از صفحه اصلی باز می‌شه و کاملاً آفلاین کار می‌کنه.</li>
+      <li><b>در آیفون و آیپد (iOS):</b> برای افزودن موزیک، فایل‌های MP3/WAV/OGG باید در اپ <span class="kbd">Files (فایل‌ها)</span> باشن (از طریق AirDrop، دانلود از مرورگر، ایمیل/تلگرام یا درایو ابری مثل iCloud). بعد دکمه 🎵 یا ➕ رو بزن و از پنجره انتخاب فایل، موزیک رو انتخاب کن. <b>نکته iCloud:</b> اگر فایلی انتخاب شد ولی اضافه نشد، یعنی هنوز از iCloud دانلود نشده — اول در اپ Files روی فایل بزن تا دانلود شود، بعد دوباره انتخابش کن. <b>توجه:</b> آهنگ‌های Apple Music/Spotify به دلیل قفل DRM قابل افزودن نیستن — فقط فایل‌های صوتی آزاد.</li>
+      <li><b>فید:</b> مدت فید رو از نوار بالا بین ۱ تا ۱۵ ثانیه تنظیم کن.</li>
+      <li>آهنگ‌ها و اسم‌ها به‌صورت خودکار در مرورگر ذخیره می‌شن و بعد از بستن برنامه هم باقی می‌مونن.</li>
+    </ul>
+  </div>
+</div>
+
+
+
+<script>
+'use strict';
+const MAIN_COUNT = 64;   // 8x8
+const SAMPLE_COUNT = 7;
+const TOTAL = MAIN_COUNT + SAMPLE_COUNT;
+const DUCK_LEVEL = 0.5;  // -50% while a sample plays
+const DUCK_TIME = 1;     // seconds
+const PAUSE_FADE = 1;    // seconds for pause/resume fade
+
+let meta = [];
+let audioFiles = new Array(TOTAL).fill(null);
+let db = null;
+let audioCtx = null;
+let mainBus = null;      // user volume for main music
+let duckGain = null;     // auto -50% while a sample plays
+let sampleBus = null;    // user volume for samples
+let decks = [null, null];
+let sampleDecks = new Array(TOTAL).fill(null);
+let currentDeck = -1;
+let activeCell = -1;
+let mainPaused = false;
+let fadeMs = 5000;
+let vol = 80;
+let mainColor = '#22d3ee';
+let sampleColor = '#c9a7ff';
+let duckOn = false;
+
+const batchInput = document.getElementById('batchInput');
+const backupInput = document.getElementById('backupInput');
+const statusEl = document.getElementById('status');
+const warnEl = document.getElementById('warn');
+const fadeValEl = document.getElementById('fadeVal');
+const seekEl = document.getElementById('seek');
+const curTimeEl = document.getElementById('curTime');
+const durTimeEl = document.getElementById('durTime');
+const waveCanvas = document.getElementById('wave');
+const waveCtx = waveCanvas.getContext('2d');
+
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmt(t){ if(!isFinite(t) || t < 0) t = 0; const m = Math.floor(t/60); const s = Math.floor(t%60); return m + ':' + String(s).padStart(2,'0'); }
+function storageOK(){ try{ const t='__t__'; localStorage.setItem(t,'1'); localStorage.removeItem(t); return true; }catch(e){ return false; } }
+function blendWithDark(hex, ratio){
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex).trim());
+  if(!m) return '#161d2b';
+  const n = parseInt(m[1], 16);
+  let r=(n>>16)&255, g=(n>>8)&255, b=n&255;
+  r = Math.round(r*ratio + 22*(1-ratio));
+  g = Math.round(g*ratio + 29*(1-ratio));
+  b = Math.round(b*ratio + 43*(1-ratio));
+  return '#'+((1<<24) + (r<<16) + (g<<8) + b).toString(16).slice(1);
+}
+
+/* ---------- persistence: metadata (localStorage) ---------- */
+function loadMeta(){
+  try{
+    const s = localStorage.getItem('djpad_meta_v1');
+    if(s){
+      const arr = JSON.parse(s);
+      for(let i=0;i<TOTAL;i++){
+        if(arr[i]) meta[i] = { name: arr[i].name || '', mode: arr[i].mode || 'next', file: arr[i].file || '', vol: (typeof arr[i].vol === 'number') ? arr[i].vol : 100, color: arr[i].color || '' };
+      }
+    }
+  }catch(e){}
+}
+function saveMeta(){ try{ localStorage.setItem('djpad_meta_v1', JSON.stringify(meta)); }catch(e){} }
+
+/* ---------- persistence: settings (localStorage) ---------- */
+function loadSettings(){
+  try{
+    const s = localStorage.getItem('djpad_settings_v1');
+    if(s){
+      const o = JSON.parse(s);
+      fadeMs = (o.fade && o.fade>=1000 && o.fade<=15000) ? o.fade : 5000;
+      vol = (typeof o.vol==='number') ? o.vol : 80;
+      mainColor = o.mainColor || '#22d3ee';
+      sampleColor = o.sampleColor || '#c9a7ff';
+    }
+  }catch(e){}
+}
+function saveSettings(){
+  try{ localStorage.setItem('djpad_settings_v1', JSON.stringify({fade:fadeMs, vol:vol, mainColor:mainColor, sampleColor:sampleColor})); }catch(e){}
+}
+function applySettingsToUI(){
+  document.getElementById('vol').value = vol;
+  document.getElementById('fade').value = Math.round(fadeMs/1000);
+  fadeValEl.textContent = Math.round(fadeMs/1000);
+  document.documentElement.style.setProperty('--accent', mainColor);
+  document.documentElement.style.setProperty('--accent2', sampleColor);
+  document.getElementById('mainColor').value = mainColor;
+  document.getElementById('sampleColor').value = sampleColor;
+}
+
+/* ---------- persistence: audio blobs (IndexedDB) ---------- */
+function openDB(){
+  return new Promise(function(resolve){
+    try{
+      if(!window.indexedDB){ resolve(null); return; }
+      const req = indexedDB.open('djpad-db', 1);
+      req.onupgradeneeded = function(e){ const d = e.target.result; if(!d.objectStoreNames.contains('audio')) d.createObjectStore('audio', {keyPath:'id'}); };
+      req.onsuccess = function(e){ resolve(e.target.result); };
+      req.onerror = function(){ resolve(null); };
+      req.onblocked = function(){ resolve(null); };
+    }catch(err){ resolve(null); }
+  });
+}
+function loadBlobs(){
+  if(!db) return;
+  try{
+    const tx = db.transaction('audio','readonly');
+    const req = tx.objectStore('audio').getAll();
+    req.onsuccess = function(){
+      const recs = req.result || [];
+      recs.forEach(function(rec){
+        if(rec && rec.blob && rec.id>=0 && rec.id<TOTAL){
+          audioFiles[rec.id] = rec.blob;
+          if(!meta[rec.id].file && rec.blob.name){
+            meta[rec.id].file = rec.blob.name;
+            if(!meta[rec.id].name) meta[rec.id].name = rec.blob.name.replace(/\.[^.]+$/,'');
+          }
+        }
+      });
+      saveMeta();
+      refreshAllCells();
+    };
+    req.onerror = function(){};
+  }catch(e){}
+}
+function saveAudio(i, blob){
+  audioFiles[i] = blob;
+  delete waveCache[i];
+  if(db){
+    try{
+      const tx = db.transaction('audio','readwrite');
+      tx.objectStore('audio').put({id:i, blob:blob});
+      tx.onerror = function(){};
+    }catch(e){}
+  }
+  if(i === activeCell) loadWave(i);
+  refreshCell(i);
+}
+function deleteAudio(i){
+  if(i >= MAIN_COUNT && sampleDecks[i]){ try{ sampleDecks[i].audio.pause(); }catch(e){} }
+  audioFiles[i] = null;
+  delete waveCache[i];
+  if(i === activeCell){ wavePeaks = null; waveDuration = 0; drawWave(0); }
+  if(db){
+    try{
+      const tx = db.transaction('audio','readwrite');
+      tx.objectStore('audio').delete(i);
+    }catch(e){}
+  }
+  recomputeDuck();
+  refreshCell(i);
+}
+
+/* ---------- audio engine ---------- */
+function ensureAudio(){
+  if(audioCtx) return;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  audioCtx = new AC();
+  mainBus = audioCtx.createGain();
+  mainBus.gain.value = vol/100;
+  duckGain = audioCtx.createGain();
+  duckGain.gain.value = 1;
+  sampleBus = audioCtx.createGain();
+  sampleBus.gain.value = vol/100;
+  mainBus.connect(duckGain);
+  duckGain.connect(audioCtx.destination);
+  sampleBus.connect(audioCtx.destination);
+
+  for(let d=0; d<2; d++){
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.volume = 1;
+    const srcNode = audioCtx.createMediaElementSource(audio);
+    const gain = audioCtx.createGain();
+    gain.gain.value = 0;
+    srcNode.connect(gain);
+    gain.connect(mainBus);
+    const deck = { audio:audio, gain:gain, srcNode:srcNode, url:null, stopTimer:null, pauseTimer:null };
+    audio.addEventListener('ended', function(){ onDeckEnded(d); });
+    audio.addEventListener('timeupdate', function(){ if(currentDeck === d){ seekEl.value = audio.currentTime; curTimeEl.textContent = fmt(audio.currentTime); } });
+    audio.addEventListener('loadedmetadata', function(){ if(currentDeck === d) updateDurText(d); });
+    audio.addEventListener('durationchange', function(){ if(currentDeck === d) updateDurText(d); });
+    decks[d] = deck;
+  }
+
+  for(let i=MAIN_COUNT; i<TOTAL; i++){
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.loop = false;
+    const srcNode = audioCtx.createMediaElementSource(audio);
+    const gain = audioCtx.createGain();
+    gain.gain.value = (meta[i].vol != null ? meta[i].vol : 100)/100;
+    srcNode.connect(gain);
+    gain.connect(sampleBus);
+    const deck = { audio:audio, gain:gain, srcNode:srcNode, blob:null, url:null };
+    audio.addEventListener('playing', function(){ setSampleActive(i, true); recomputeDuck(); });
+    audio.addEventListener('ended', function(){ setSampleActive(i, false); recomputeDuck(); });
+    audio.addEventListener('pause', function(){ setSampleActive(i, false); recomputeDuck(); });
+    sampleDecks[i] = deck;
+  }
+}
+function setDuck(on){
+  if(!audioCtx || !duckGain || on === duckOn) return;
+  duckOn = on;
+  const now = audioCtx.currentTime;
+  const g = duckGain.gain;
+  g.cancelScheduledValues(now);
+  g.setValueAtTime(g.value, now);
+  g.linearRampToValueAtTime(on ? DUCK_LEVEL : 1, now + DUCK_TIME);
+}
+function recomputeDuck(){
+  if(!audioCtx || !duckGain) return;
+  let n = 0;
+  for(let i=MAIN_COUNT; i<TOTAL; i++){
+    const a = sampleDecks[i] && sampleDecks[i].audio;
+    if(a && !a.paused && !a.ended) n++;
+  }
+  setDuck(n > 0);
+}
+function fadeDeckGainTo(deck, target, seconds){
+  const now = audioCtx.currentTime;
+  const g = deck.gain.gain;
+  g.cancelScheduledValues(now);
+  g.setValueAtTime(g.value, now);
+  g.linearRampToValueAtTime(target, now + seconds);
+}
+function updateDurText(d){
+  const a = decks[d].audio;
+  const dur = (isFinite(a.duration) && a.duration > 0) ? a.duration : 0;
+  seekEl.max = dur > 0 ? dur : 1;
+  durTimeEl.textContent = fmt(dur);
+}
+function seekFromDeck(){
+  if(currentDeck < 0 || !decks[currentDeck]){
+    seekEl.disabled = true; seekEl.value = 0;
+    curTimeEl.textContent = '0:00'; durTimeEl.textContent = '0:00';
+    return;
+  }
+  const a = decks[currentDeck].audio;
+  const dur = (isFinite(a.duration) && a.duration > 0) ? a.duration : 0;
+  seekEl.max = dur > 0 ? dur : 1;
+  seekEl.disabled = false;
+  seekEl.value = (isFinite(a.currentTime) && a.currentTime > 0) ? a.currentTime : 0;
+  curTimeEl.textContent = fmt(a.currentTime);
+  durTimeEl.textContent = fmt(dur);
+}
+function clearFadeTimers(){
+  for(const d of decks){
+    if(d){
+      if(d.stopTimer){ clearTimeout(d.stopTimer); d.stopTimer = null; }
+      if(d.pauseTimer){ clearTimeout(d.pauseTimer); d.pauseTimer = null; }
+    }
+  }
+}
+function fadeOutDeck(d, durMs){
+  const deck = decks[d];
+  if(!deck) return;
+  const now = audioCtx.currentTime;
+  const g = deck.gain.gain;
+  g.cancelScheduledValues(now);
+  g.setValueAtTime(g.value, now);
+  g.linearRampToValueAtTime(0, now + durMs/1000);
+  const dd = deck;
+  dd.stopTimer = setTimeout(function(){
+    dd.audio.pause();
+    try{ dd.audio.currentTime = 0; }catch(e){}
+  }, durMs + 150);
+}
+function onDeckEnded(d){
+  if(currentDeck !== d || activeCell < 0) return;
+  const mode = meta[activeCell].mode || 'next';
+  if(mode === 'next' && !advanceFrom(activeCell)){
+    /* آهنگ بعدی وجود نداشت — پخش تمام شد */
+    currentDeck = -1;
+    activeCell = -1;
+    mainPaused = false;
+    updateActiveUI();
+    seekFromDeck();
+    drawWave(0);
+  }
+}
+function advanceFrom(i){
+  for(let k=1; k<MAIN_COUNT; k++){
+    const j = (i + k) % MAIN_COUNT;
+    if(j !== i && audioFiles[j]){ playCell(j); return true; }
+  }
+  return false;
+}
+/* شروع کراس‌فید کمی قبل از پایان آهنگ (مثل دیجی واقعی) در حالت «رفتن به بعدی» */
+function checkAutoCrossfade(){
+  if(mainPaused) return;
+  if(currentDeck < 0 || activeCell < 0) return;
+  const deck = decks[currentDeck];
+  if(!deck) return;
+  const a = deck.audio;
+  if(!a || a.loop) return;
+  if((meta[activeCell].mode || 'next') !== 'next') return;
+  if(!isFinite(a.duration) || a.duration <= 0) return;
+  const remaining = a.duration - a.currentTime;
+  if(remaining > 0 && remaining <= (fadeMs/1000) + 0.1){
+    advanceFrom(activeCell);
+  }
+}
+function togglePauseMain(){
+  if(currentDeck < 0 || !decks[currentDeck]) return;
+  const deck = decks[currentDeck];
+  if(mainPaused){
+    mainPaused = false;
+    if(deck.pauseTimer){ clearTimeout(deck.pauseTimer); deck.pauseTimer = null; }
+    if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    fadeDeckGainTo(deck, 1, PAUSE_FADE);
+    deck.audio.play().catch(function(){});
+  }else{
+    mainPaused = true;
+    fadeDeckGainTo(deck, 0, PAUSE_FADE);
+    const dd = deck;
+    dd.pauseTimer = setTimeout(function(){
+      dd.audio.pause();
+    }, PAUSE_FADE*1000 + 120);
+  }
+  seekFromDeck();
+  updateActiveUI();
+}
+function playCell(i){
+  if(i === activeCell && currentDeck >= 0){ togglePauseMain(); return; }
+  const blob = audioFiles[i];
+  if(!blob){ flashCell(i); return; }
+  ensureAudio();
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  const prev = currentDeck;
+  const target = (prev === -1) ? 0 : (1 - prev);
+  const deck = decks[target];
+
+  clearFadeTimers();
+  mainPaused = false;
+
+  const oldUrl = deck.url;
+  const url = URL.createObjectURL(blob);
+  deck.audio.src = url;
+  if(oldUrl) URL.revokeObjectURL(oldUrl);
+  deck.url = url;
+
+  const mode = meta[i].mode || 'next';
+  deck.audio.loop = (mode === 'loop');
+  try{ deck.audio.currentTime = 0; }catch(e){}
+
+  const now = audioCtx.currentTime;
+  const t = now + fadeMs/1000;
+  const g = deck.gain.gain;
+  g.cancelScheduledValues(now);
+  g.setValueAtTime(g.value, now);
+  g.linearRampToValueAtTime(1, t);
+
+  currentDeck = target;
+  activeCell = i;
+  deck.audio.play().catch(function(){});
+
+  if(prev >= 0) fadeOutDeck(prev, fadeMs);
+
+  updateActiveUI();
+  seekFromDeck();
+  loadWave(i);
+}
+function stopAll(){
+  clearFadeTimers();
+  if(audioCtx && currentDeck >= 0) fadeOutDeck(currentDeck, fadeMs);
+  currentDeck = -1;
+  activeCell = -1;
+  mainPaused = false;
+  for(let i=MAIN_COUNT; i<TOTAL; i++){
+    if(sampleDecks[i]){ try{ sampleDecks[i].audio.pause(); }catch(e){} }
+  }
+  recomputeDuck();
+  updateActiveUI();
+  seekFromDeck();
+  drawWave(0);
+}
+function triggerSample(i){
+  const blob = audioFiles[i];
+  if(!blob){ flashCell(i); return; }
+  ensureAudio();
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  const deck = sampleDecks[i];
+  if(!deck) return;
+  if(!deck.audio.paused){
+    try{ deck.audio.pause(); }catch(e){}
+    try{ deck.audio.currentTime = 0; }catch(e){}
+    setSampleActive(i, false);
+    recomputeDuck();
+    return;
+  }
+  if(deck.blob !== blob){
+    if(deck.url) URL.revokeObjectURL(deck.url);
+    deck.url = URL.createObjectURL(blob);
+    deck.audio.src = deck.url;
+    deck.blob = blob;
+  }
+  deck.gain.gain.value = (meta[i].vol != null ? meta[i].vol : 100)/100;
+  try{ deck.audio.currentTime = 0; }catch(e){}
+  deck.audio.play().catch(function(){});
+  recomputeDuck();
+}
+
+/* ---------- waveform ---------- */
+let wavePeaks = null;
+let waveDuration = 0;
+let waveCache = {};
+let waveToken = 0;
+
+function decodeAudioDataSafe(arrayBuf){
+  return new Promise(function(resolve, reject){
+    try{
+      let settled = false;
+      const onOk = function(buf){ if(!settled){ settled = true; resolve(buf); } };
+      const onErr = function(err){ if(!settled){ settled = true; reject(err || new Error('decode failed')); } };
+      const p = audioCtx.decodeAudioData(arrayBuf, onOk, onErr);
+      if(p && typeof p.then === 'function'){
+        p.then(onOk, onErr);
+        if(typeof p.catch === 'function') p.catch(function(){});
+      }
+    }catch(e){ reject(e); }
+  });
+}
+function computePeaks(buffer, buckets){
+  const data = buffer.getChannelData(0);
+  const n = data.length;
+  if(!n) return new Float32Array(0);
+  const peaks = new Float32Array(buckets);
+  const step = n / buckets;
+  let maxAll = 0;
+  for(let b=0; b<buckets; b++){
+    let s = Math.floor(b*step), e = Math.floor((b+1)*step);
+    if(e <= s) e = s + 1;
+    let max = 0;
+    for(let i=s; i<e; i++){ const v = Math.abs(data[i]); if(v > max) max = v; }
+    peaks[b] = max;
+    if(max > maxAll) maxAll = max;
+  }
+  if(maxAll > 0){
+    for(let b=0; b<buckets; b++) peaks[b] = Math.sqrt(peaks[b] / maxAll);
+  }
+  return peaks;
+}
+async function loadWave(i){
+  const token = ++waveToken;
+  if(waveCache[i]){ applyWave(waveCache[i]); return; }
+  const blob = audioFiles[i];
+  if(!blob){ if(token === waveToken){ wavePeaks = null; waveDuration = 0; drawWave(0); } return; }
+  try{
+    ensureAudio();
+    const arrayBuf = await blob.arrayBuffer();
+    if(token !== waveToken) return;
+    const buf = await decodeAudioDataSafe(arrayBuf);
+    if(token !== waveToken) return;
+    if(!buf || !buf.length) throw new Error('empty buffer');
+    const w = { peaks: computePeaks(buf, 420), duration: buf.duration };
+    waveCache[i] = w;
+    applyWave(w);
+  }catch(err){
+    if(token === waveToken){ wavePeaks = null; waveDuration = 0; drawWave(0); }
+  }
+}
+function applyWave(w){
+  wavePeaks = w.peaks;
+  waveDuration = w.duration;
+  drawWave(0);
+}
+function waveCurrentTime(){
+  return (currentDeck >= 0 && decks[currentDeck]) ? decks[currentDeck].audio.currentTime : 0;
+}
+/* رسم مستقیم روی بوم اصلی — بدون offscreen canvas و بدون پرچم اضافه */
+function drawWave(playhead){
+  const dpr = window.devicePixelRatio || 1;
+  const W = waveCanvas.clientWidth, H = waveCanvas.clientHeight;
+  if(W <= 0 || H <= 0) return;
+  const pw = Math.round(W * dpr), ph = Math.round(H * dpr);
+  if(waveCanvas.width !== pw || waveCanvas.height !== ph){
+    waveCanvas.width = pw;
+    waveCanvas.height = ph;
+  }
+  waveCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  waveCtx.clearRect(0, 0, W, H);
+  waveCtx.fillStyle = 'rgba(20,28,43,.6)';
+  waveCtx.fillRect(0, 0, W, H);
+  if(wavePeaks && wavePeaks.length){
+    const n = wavePeaks.length;
+    const bw = W / n;
+    const barH = H * 0.86;
+    const y0 = H / 2;
+    const accent = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#22d3ee').trim();
+    waveCtx.fillStyle = accent;
+    for(let b=0; b<n; b++){
+      const h = Math.max(1, wavePeaks[b] * barH);
+      waveCtx.fillRect(b*bw + bw*0.15, y0 - h/2, bw*0.7, h);
+    }
+  }else{
+    waveCtx.fillStyle = '#5b6675';
+    waveCtx.font = '11px sans-serif';
+    waveCtx.textAlign = 'center';
+    waveCtx.fillText('Waveform آهنگ در حال پخش اینجا نمایش داده می‌شود', W/2, H/2);
+  }
+  if(wavePeaks && wavePeaks.length && waveDuration > 0){
+    const ratio = Math.min(1, Math.max(0, playhead / waveDuration));
+    waveCtx.fillStyle = '#ffffff';
+    waveCtx.fillRect(ratio * W - 1, 0, 2, H);
+  }
+}
+function waveLoop(){
+  requestAnimationFrame(waveLoop);
+  drawWave(waveCurrentTime());
+  checkAutoCrossfade();
+}
+
+/* ---------- UI ---------- */
+function buildGrid(){
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  for(let i=0; i<MAIN_COUNT; i++){
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.id = 'cell-' + i;
+    cell.innerHTML =
+      '<button class="pad" data-i="'+i+'">' +
+        '<span class="pad-name muted">—</span>' +
+        '<span class="pad-badge">○</span>' +
+      '</button>' +
+      '<input class="name" data-i="'+i+'" placeholder="نام آهنگ…" />' +
+      '<div class="cell-controls">' +
+        '<label class="ctl file" data-i="'+i+'" title="انتخاب / تغییر آهنگ">🎵<input type="file" class="fileinput" accept="audio/*,.mp3,.m4a,.wav,.ogg,.flac,.aac,.m4b" data-i="'+i+'"></label>' +
+        '<button class="ctl mode" data-i="'+i+'" title="حالت پخش">🔁</button>' +
+        '<button class="ctl del" data-i="'+i+'" title="حذف آهنگ">🗑</button>' +
+        '<input type="color" class="colorpick" data-i="'+i+'" title="رنگ این خونه">' +
+      '</div>';
+    grid.appendChild(cell);
+  }
+}
+function buildSampler(){
+  const s = document.getElementById('sampler');
+  s.innerHTML = '<div class="sampler-title"><b>نمونه‌ها</b>پخش همزمان<br>روی آهنگ اصلی<br>(بدون تکرار)</div>';
+  for(let i=MAIN_COUNT; i<TOTAL; i++){
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.id = 'cell-' + i;
+    cell.innerHTML =
+      '<button class="pad" data-i="'+i+'">' +
+        '<span class="pad-name muted">—</span>' +
+        '<span class="pad-badge">○</span>' +
+      '</button>' +
+      '<input class="name" data-i="'+i+'" placeholder="نام…" />' +
+      '<input class="vol" type="range" min="0" max="100" value="100" data-i="'+i+'" title="صدای این نمونه" />' +
+      '<div class="cell-controls">' +
+        '<label class="ctl file" data-i="'+i+'" title="انتخاب / تغییر آهنگ">🎵<input type="file" class="fileinput" accept="audio/*,.mp3,.m4a,.wav,.ogg,.flac,.aac,.m4b" data-i="'+i+'"></label>' +
+        '<button class="ctl del" data-i="'+i+'" title="حذف آهنگ">🗑</button>' +
+        '<input type="color" class="colorpick" data-i="'+i+'" title="رنگ این خونه">' +
+      '</div>';
+    s.appendChild(cell);
+  }
+}
+function onGridClick(e){
+  const pad = e.target.closest('.pad');
+  const btn = e.target.closest('.ctl');
+  const i = pad ? +pad.dataset.i : (btn ? +btn.dataset.i : -1);
+  if(i < 0) return;
+  if(btn){
+    if(btn.classList.contains('mode')){ toggleMode(i); }
+    else if(btn.classList.contains('del')){ deleteAudio(i); }
+    return;
+  }
+  if(pad){
+    if(i < MAIN_COUNT) playCell(i);
+    else triggerSample(i);
+  }
+}
+function onGridInput(e){
+  const inp = e.target;
+  if(inp.classList.contains('name')){
+    const i = +inp.dataset.i;
+    meta[i].name = inp.value;
+    saveMeta();
+    refreshCell(i);
+  }else if(inp.classList.contains('vol')){
+    const i = +inp.dataset.i;
+    meta[i].vol = +inp.value;
+    if(sampleDecks[i]) sampleDecks[i].gain.gain.value = (+inp.value)/100;
+    saveMeta();
+  }else if(inp.classList.contains('colorpick')){
+    const i = +inp.dataset.i;
+    meta[i].color = inp.value;
+    saveMeta();
+    refreshCell(i);
+  }
+}
+function toggleMode(i){
+  meta[i].mode = (meta[i].mode === 'loop') ? 'next' : 'loop';
+  saveMeta();
+  refreshCell(i);
+  if(activeCell === i && currentDeck >= 0){
+    decks[currentDeck].audio.loop = (meta[i].mode === 'loop');
+  }
+}
+function setSampleActive(i, on){
+  const cell = document.getElementById('cell-' + i);
+  if(cell) cell.classList.toggle('active', on);
+}
+function flashCell(i){
+  const cell = document.getElementById('cell-' + i);
+  if(!cell) return;
+  cell.classList.add('flash');
+  setTimeout(function(){ cell.classList.remove('flash'); }, 650);
+}
+function refreshCell(i){
+  const cell = document.getElementById('cell-' + i);
+  if(!cell) return;
+  const pad = cell.querySelector('.pad');
+  const padName = cell.querySelector('.pad-name');
+  const badge = cell.querySelector('.pad-badge');
+  const modeBtn = cell.querySelector('.ctl.mode');
+  const input = cell.querySelector('.name');
+  const cp = cell.querySelector('.colorpick');
+  const has = !!audioFiles[i];
+  const name = input.value.trim() || (has ? (meta[i].file || '') : '');
+  padName.textContent = name || '—';
+  padName.classList.toggle('muted', !name);
+  const isActive = (activeCell === i);
+  const isPaused = isActive && mainPaused && currentDeck >= 0;
+  if(isPaused){ badge.textContent = '⏸'; badge.classList.add('on'); }
+  else{ badge.textContent = has ? '●' : '○'; badge.classList.toggle('on', has); }
+  cell.classList.toggle('has-audio', has);
+  if(modeBtn){
+    const m = meta[i].mode || 'next';
+    modeBtn.textContent = (m === 'loop') ? '🔁' : '⏭️';
+    modeBtn.classList.toggle('next', m === 'next');
+    modeBtn.title = (m === 'loop')
+      ? 'حالت: لوپ (تکرار همین آهنگ) — برای رفتن به خونه بعدی کلیک کن'
+      : 'حالت: رفتن به خونه بعدی — برای لوپ کلیک کن';
+  }
+  const volInp = cell.querySelector('.vol');
+  if(volInp){
+    volInp.disabled = !has;
+    volInp.value = (meta[i].vol != null ? meta[i].vol : 100);
+  }
+  const custom = meta[i].color || '';
+  const accent = custom || (i < MAIN_COUNT ? mainColor : sampleColor);
+  cell.style.setProperty('--pc-accent', accent);
+  if(cp) cp.value = accent;
+  if(custom){
+    cell.style.setProperty('--pc', blendWithDark(custom, 0.30));
+    cell.style.setProperty('--pc-border', blendWithDark(custom, 0.72));
+    pad.classList.add('has-color');
+  }else{
+    cell.style.removeProperty('--pc');
+    cell.style.removeProperty('--pc-border');
+    pad.classList.remove('has-color');
+  }
+  cell.classList.toggle('active', isActive);
+  cell.classList.toggle('paused', isPaused);
+}
+function refreshAllCells(){ for(let i=0; i<TOTAL; i++) refreshCell(i); }
+function updateActiveUI(){
+  refreshAllCells();
+  if(activeCell >= 0){
+    const n = meta[activeCell].name || meta[activeCell].file || ('خونه ' + (activeCell + 1));
+    statusEl.innerHTML = (mainPaused ? '⏸ توقف موقت: <b>' : '▶ در حال پخش: <b>') + escapeHtml(n) + '</b>';
+  }else{
+    statusEl.textContent = 'آماده — روی یک خونه کلیک کن';
+  }
+}
+
+/* ---------- backup ---------- */
+function exportBackup(){
+  const out = {
+    app: 'djpad-amound', version: 1,
+    exportedAt: new Date().toISOString(),
+    settings: { fade: fadeMs, vol: vol, mainColor: mainColor, sampleColor: sampleColor },
+    meta: [],
+    audio: []
+  };
+  let count = 0;
+  const jobs = [];
+  for(let i=0; i<TOTAL; i++){
+    out.meta.push({ name: meta[i].name, mode: meta[i].mode, file: meta[i].file, vol: meta[i].vol, color: meta[i].color || '' });
+    if(audioFiles[i]){
+      count++;
+      (function(idx){
+        jobs.push(new Promise(function(resolve){
+          const reader = new FileReader();
+          reader.onload = function(){
+            out.audio.push({ id: idx, name: audioFiles[idx].name || '', type: audioFiles[idx].type || '', data: String(reader.result).split(',')[1] || '' });
+            resolve();
+          };
+          reader.onerror = function(){ resolve(); };
+          reader.readAsDataURL(audioFiles[idx]);
+        }));
+      })(i);
+    }
+  }
+  statusEl.textContent = '⏳ در حال ساخت بکاپ…';
+  Promise.all(jobs).then(function(){
+    try{
+      const json = JSON.stringify(out);
+      const blob = new Blob([json], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      const d = new Date();
+      const ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      a.download = 'backup-amound-' + ds + '.json';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+      statusEl.textContent = '✅ بکاپ شامل ' + count + ' آهنگ ساخته شد و دانلود شد';
+    }catch(e){
+      statusEl.textContent = '⚠️ ساخت بکاپ ناموفق بود (حجم زیاد؟)';
+      alert('ساخت بکاپ ناموفق بود: ' + e.message);
+    }
+  });
+}
+function b64ToBlob(b64, type){
+  const bin = atob(b64);
+  const len = bin.length;
+  const bytes = new Uint8Array(len);
+  for(let i=0; i<len; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: type || 'application/octet-stream' });
+}
+function importBackup(file){
+  const reader = new FileReader();
+  reader.onload = function(){
+    try{
+      const out = JSON.parse(reader.result);
+      if(!out || !Array.isArray(out.audio)) throw new Error('ساختار فایل نامعتبر');
+      stopAll();
+      if(out.settings){
+        fadeMs = (out.settings.fade && out.settings.fade>=1000 && out.settings.fade<=15000) ? out.settings.fade : fadeMs;
+        vol = (typeof out.settings.vol === 'number') ? out.settings.vol : vol;
+        mainColor = out.settings.mainColor || mainColor;
+        sampleColor = out.settings.sampleColor || sampleColor;
+      }
+      meta = new Array(TOTAL).fill(null).map(function(){ return {name:'', mode:'next', file:'', vol:100, color:''}; });
+      if(Array.isArray(out.meta)){
+        for(let i=0; i<TOTAL && i<out.meta.length; i++){
+          const m = out.meta[i] || {};
+          meta[i] = { name: m.name || '', mode: m.mode || 'next', file: m.file || '', vol: (typeof m.vol === 'number' ? m.vol : 100), color: m.color || '' };
+        }
+      }
+      const recs = out.audio || [];
+      let pending = recs.length;
+      const done = function(){
+        pending--;
+        if(pending <= 0){
+          saveMeta();
+          saveSettings();
+          applySettingsToUI();
+          refreshAllCells();
+          statusEl.textContent = '✅ بکاپ با موفقیت بازیابی شد (' + recs.length + ' آهنگ)';
+        }
+      };
+      if(pending === 0){ saveMeta(); saveSettings(); applySettingsToUI(); refreshAllCells(); statusEl.textContent = '✅ بکاپ بازیابی شد (بدون آهنگ)'; return; }
+      statusEl.textContent = '⏳ در حال بازیابی بکاپ…';
+      recs.forEach(function(rec){
+        const id = rec.id;
+        if(typeof id !== 'number' || id < 0 || id >= TOTAL){ done(); return; }
+        try{
+          const b = b64ToBlob(rec.data || '', rec.type || '');
+          const f = new File([b], rec.name || ('track-' + id + '.mp3'), { type: rec.type || 'audio/mpeg' });
+          audioFiles[id] = f;
+          saveAudio(id, f);
+        }catch(e){}
+        done();
+      });
+    }catch(e){
+      alert('فایل بکاپ نامعتبر است: ' + e.message);
+    }
+  };
+  reader.onerror = function(){ alert('خواندن فایل بکاپ ناموفق بود'); };
+  reader.readAsText(file);
+}
+
+/* ---------- batch import ---------- */
+function assignFile(i, f){
+  try{
+    if(!f || f.size === 0){
+      statusEl.textContent = '⚠️ فایل قابل خواندن نیست. اگر از iCloud انتخاب کرده‌ای، اول در اپ Files روی فایل بزن تا دانلود شود';
+      flashCell(i);
+      return false;
+    }
+    meta[i].file = f.name;
+    if(!meta[i].name) meta[i].name = f.name.replace(/\.[^.]+$/,'');
+    saveAudio(i, f);
+    const inp = document.querySelector('.name[data-i="'+i+'"]');
+    if(inp) inp.value = meta[i].name;
+    refreshCell(i);
+    statusEl.textContent = '✅ آهنگ «' + escapeHtml(f.name) + '» اضافه شد';
+    return true;
+  }catch(err){
+    statusEl.textContent = '⚠️ افزودن آهنگ ناموفق بود: ' + (err && err.message ? err.message : err);
+    return false;
+  }
+}
+function addManyTracks(files){
+  if(!files || !files.length) return;
+  let assigned = 0, skipped = 0;
+  for(let k=0; k<files.length; k++){
+    const f = files[k];
+    if(!f || f.size === 0){ skipped++; continue; }
+    let idx = -1;
+    for(let i=0; i<MAIN_COUNT; i++){ if(!audioFiles[i]){ idx = i; break; } }
+    if(idx < 0) break;
+    if(assignFile(idx, f)) assigned++;
+  }
+  saveMeta();
+  let msg = '';
+  if(assigned) msg = '✅ ' + assigned + ' آهنگ به خانه‌های خالی اضافه شد';
+  if(skipped) msg += (msg ? ' — ' : '⚠️ ') + skipped + ' فایل قابل خواندن نبود (احتمالاً از iCloud دانلود نشده)';
+  if(!assigned && !skipped) msg = '⚠️ خانه خالی وجود ندارد — چند خانه را خالی کن یا آهنگ‌ها را جابه‌جا کن';
+  statusEl.textContent = msg;
+}
+function onGridChange(e){
+  const inp = e.target;
+  if(!inp || !inp.classList || !inp.classList.contains('fileinput')) return;
+  const i = +inp.dataset.i;
+  const f = inp.files && inp.files[0];
+  inp.value = '';
+  if(f) assignFile(i, f);
+}
+
+/* ---------- wire global controls ---------- */
+function wireEvents(){
+  document.getElementById('vol').addEventListener('input', function(e){
+    vol = +e.target.value;
+    if(mainBus) mainBus.gain.value = vol/100;
+    if(sampleBus) sampleBus.gain.value = vol/100;
+    saveSettings();
+  });
+  document.getElementById('fade').addEventListener('input', function(e){
+    fadeMs = +e.target.value * 1000;
+    fadeValEl.textContent = e.target.value;
+    saveSettings();
+  });
+  document.getElementById('mainColor').addEventListener('input', function(e){
+    mainColor = e.target.value;
+    document.documentElement.style.setProperty('--accent', mainColor);
+    drawWave(waveCurrentTime());
+    refreshAllCells();
+    saveSettings();
+  });
+  document.getElementById('sampleColor').addEventListener('input', function(e){
+    sampleColor = e.target.value;
+    document.documentElement.style.setProperty('--accent2', sampleColor);
+    refreshAllCells();
+    saveSettings();
+  });
+  seekEl.addEventListener('input', function(){
+    if(currentDeck >= 0 && decks[currentDeck]){
+      try{ decks[currentDeck].audio.currentTime = parseFloat(seekEl.value) || 0; }catch(e){}
+    }
+  });
+  waveCanvas.addEventListener('click', function(e){
+    if(!wavePeaks || waveDuration <= 0 || currentDeck < 0 || !decks[currentDeck]) return;
+    const rect = waveCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const ratio = Math.min(1, Math.max(0, x / rect.width));
+    decks[currentDeck].audio.currentTime = ratio * waveDuration;
+  });
+  document.getElementById('stopBtn').addEventListener('click', stopAll);
+  batchInput.addEventListener('change', function(){
+    const files = Array.prototype.slice.call(batchInput.files || []);
+    batchInput.value = '';
+    addManyTracks(files);
+  });
+  document.getElementById('backupBtn').addEventListener('click', exportBackup);
+  backupInput.addEventListener('change', function(){
+    const f = backupInput.files[0];
+    backupInput.value = '';
+    if(f) importBackup(f);
+  });
+  document.getElementById('helpBtn').addEventListener('click', function(){
+    document.getElementById('helpModal').classList.remove('hidden');
+  });
+  document.getElementById('helpClose').addEventListener('click', function(){
+    document.getElementById('helpModal').classList.add('hidden');
+  });
+  document.getElementById('helpModal').addEventListener('click', function(e){
+    if(e.target === this) this.classList.add('hidden');
+  });
+  document.getElementById('stage').addEventListener('click', onGridClick);
+  document.getElementById('stage').addEventListener('input', onGridInput);
+  document.getElementById('stage').addEventListener('change', onGridChange);
+  window.addEventListener('resize', function(){ drawWave(waveCurrentTime()); });
+}
+
+/* ---------- PWA install ---------- */
+let deferredInstallPrompt = null;
+const installBtn = document.getElementById('installBtn');
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  installBtn.classList.remove('hidden');
+});
+installBtn.addEventListener('click', function(){
+  if(!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(function(){
+    deferredInstallPrompt = null;
+    installBtn.classList.add('hidden');
+  });
+});
+window.addEventListener('appinstalled', function(){
+  installBtn.classList.add('hidden');
+  deferredInstallPrompt = null;
+  statusEl.textContent = '✅ اپ نصب شد — حالا از صفحه اصلی دستگاه بازش کن';
+});
+
+/* ---------- service worker ---------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    try{
+      navigator.serviceWorker.register('./sw.js').catch(function(){});
+    }catch(e){}
+  });
+}
+
+/* ---------- init ---------- */
+async function init(){
+  meta = new Array(TOTAL).fill(null).map(function(){ return {name:'', mode:'next', file:'', vol:100, color:''}; });
+  loadMeta();
+  loadSettings();
+  buildGrid();
+  buildSampler();
+  applySettingsToUI();
+  refreshAllCells();
+  wireEvents();
+  drawWave(0);
+  requestAnimationFrame(waveLoop);
+  db = await openDB();
+  if(db){ loadBlobs(); }
+  if(!db || !storageOK()){
+    warnEl.classList.remove('hidden');
+  }
+  requestPersistentStorage();
+}
+
+/* درخواست ذخیره دائمی از مرورگر (مخصوص iOS/Safari تا آهنگ‌ها پاک نشوند) */
+function requestPersistentStorage(){
+  const note = document.getElementById('storageNote');
+  try{
+    if(typeof navigator !== 'undefined' && navigator.storage && navigator.storage.persist){
+      navigator.storage.persist().then(function(granted){
+        if(note){
+          note.textContent = granted
+            ? ' — ذخیره دائمی فعال ✅'
+            : ' — نکته iOS: برای ماندگاری آهنگ‌ها، برنامه را گاهی باز کن';
+        }
+      }).catch(function(){
+        if(note) note.textContent = '';
+      });
+    }else{
+      if(note) note.textContent = '';
+    }
+  }catch(e){ if(note) note.textContent = ''; }
+}
+init();
+</script>
+</body>
+</html>
